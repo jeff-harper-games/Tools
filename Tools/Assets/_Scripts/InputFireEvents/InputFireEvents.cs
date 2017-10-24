@@ -26,5 +26,4 @@ public class InputEvents
     public UnityEvent keyEvent;
     public string Name;
     public bool display;
-    public string description;
 }
