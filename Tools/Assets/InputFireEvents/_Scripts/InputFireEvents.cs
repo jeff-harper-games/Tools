@@ -1,4 +1,8 @@
-﻿using System.Collections.Generic;
+﻿/*
+ * Author: Jeff Harper @jeffdevsitall 
+ */
+
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 

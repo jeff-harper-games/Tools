@@ -1,4 +1,8 @@
-﻿using UnityEngine;
+﻿/*
+ * Author: Jeff Harper @jeffdevsitall
+ */
+
+using UnityEngine;
 using UnityEditor;
 using UnityEditorInternal;
 
