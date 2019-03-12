@@ -6,14 +6,13 @@ public class CoroutineLerp
     private Coroutine coroutine;
     public delegate void MarkerDelegate(bool b);
     public MarkerDelegate marker;
-    public delegate void ProgressDelegate(float f);
-    public ProgressDelegate progress;
+    public float Progress; 
 
-    public void Begin(float start, float end, float duration, MonoBehaviour mono)
+    public void Begin(float duration, MonoBehaviour mono)
     {
         if(coroutine != null)
             mono.StopCoroutine(coroutine);
-        coroutine = mono.StartCoroutine(Perform(start, end, duration));
+        coroutine = mono.StartCoroutine(Perform(duration));
     }
 
     public void Stop(MonoBehaviour mono)
@@ -22,20 +21,21 @@ public class CoroutineLerp
             mono.StopCoroutine(coroutine);
     }
 
-    public IEnumerator Perform(float start, float end, float duration)
+    public IEnumerator Perform(float duration)
     {
         if (marker != null)
             marker.Invoke(true);
-        if (progress != null)
-            progress.Invoke(start);
+
+        Progress = 0.0f;
+
         for (float t = 0; t < 1; t += Time.deltaTime / duration)
         {
-            if (progress != null)
-                progress.Invoke(Mathf.Lerp(start, end, t));
+            Progress = Mathf.Lerp(0.0f, 1.0f, t);
             yield return null;
         }
-        if(progress != null)
-            progress.Invoke(end);
+
+        Progress = 1.0f;
+
         if (marker != null)
             marker.Invoke(false);
     }
