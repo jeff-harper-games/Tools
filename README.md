@@ -6,3 +6,6 @@ Here I will post, helpful tools, as well as editor code, I have written and use 
 ***Note***
 
 Everything in this project is WIP, please let me know if you have any suggestions on fixes or tools to add!
+
+Follow on Twitter
+@jeffdevsitall
