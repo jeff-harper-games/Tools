@@ -2,6 +2,7 @@
 using UnityEngine;
 
 [RequireComponent(typeof(PolygonCollider2D))]
+[AddComponentMenu("Tools/Points")]
 public class Points : MonoBehaviour
 {
     public PolygonCollider2D polyCol;
