@@ -43,7 +43,7 @@ public class SpriteEditorWindow : EditorWindow
     private bool placeInScene = false; 
     private SpriteImportMode mode = SpriteImportMode.Single;
     private bool showBackground;
-    private string[] maxSize = new string[] { "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192" };
+    private string[] convertMaxSize = new string[] { "32", "64", "128", "256", "512", "1024", "2048", "4096", "8192" };
     private int size = 6;
     private TextureImporterCompression compressionQuality = TextureImporterCompression.Compressed;
     private bool useCrunch = true;
@@ -52,7 +52,11 @@ public class SpriteEditorWindow : EditorWindow
     private bool updateMode = true;
     private ReorderableList list;
     private bool dragging;
-    private bool showList = true; 
+    private bool showList = true;
+    private int splitSize = 6;
+    private TextureImporterType splitImporterType = TextureImporterType.Sprite;
+    private bool useImportSettings = true;
+    private bool createSplitFolder = true; 
     #endregion
 
     [MenuItem("Tools/Sprite Editor")]
@@ -276,11 +280,13 @@ public class SpriteEditorWindow : EditorWindow
         {
             if (mode == SpriteImportMode.Multiple)
             {
+                /*
                 if (GUILayout.Button("Launch Sprite Editor"))
                 {
                     Selection.activeObject = sprites[0];
                     EditorWindow.GetWindow(typeof(EditorWindow).Assembly.GetTypes().Where(t => t.Name == "SpriteEditorWindow").FirstOrDefault());
                 }
+                */
 
                 if (GUILayout.Button("Generate Multiple Sprites"))
                     GenerateMultiple(sprites[0]);
@@ -301,12 +307,12 @@ public class SpriteEditorWindow : EditorWindow
         EditorGUILayout.BeginHorizontal();
         // label for max size 
         EditorGUILayout.LabelField("Max Size", GUILayout.Width(130));
-        size = EditorGUILayout.Popup(size, maxSize);
-        if (int.Parse(maxSize[size]) != importer.maxTextureSize)
+        size = EditorGUILayout.Popup(size, convertMaxSize);
+        if (int.Parse(convertMaxSize[size]) != importer.maxTextureSize)
         {
             if (GUILayout.Button("Apply"))
             {
-                importer.maxTextureSize = int.Parse(maxSize[size]);
+                importer.maxTextureSize = int.Parse(convertMaxSize[size]);
                 importer.SaveAndReimport();
                 AssetDatabase.Refresh();
             }
@@ -396,7 +402,7 @@ public class SpriteEditorWindow : EditorWindow
         {
             changed = true;
         }
-        else if (int.Parse(maxSize[size]) != importer.maxTextureSize)
+        else if (int.Parse(convertMaxSize[size]) != importer.maxTextureSize)
         {
             changed = true;
         }
@@ -410,12 +416,11 @@ public class SpriteEditorWindow : EditorWindow
             quality = importer.compressionQuality;
             useCrunch = importer.crunchedCompression;
             compressionQuality = importer.textureCompression;
-            for (int i = 0; i < maxSize.Length; i++)
+            for (int i = 0; i < convertMaxSize.Length; i++)
             {
-                if (int.Parse(maxSize[i]) == importer.maxTextureSize)
+                if (int.Parse(convertMaxSize[i]) == importer.maxTextureSize)
                     size = i;
             }
-
         }
 
         if (GUILayout.Button("Apply All"))
@@ -424,13 +429,46 @@ public class SpriteEditorWindow : EditorWindow
             importer.crunchedCompression = useCrunch;
             importer.textureCompression = compressionQuality;
             importer.compressionQuality = quality;
-            importer.maxTextureSize = int.Parse(maxSize[size]);
+            importer.maxTextureSize = int.Parse(convertMaxSize[size]);
             importer.SaveAndReimport();
             AssetDatabase.Refresh();
         }
 
         GUI.enabled = true;
         // end horizontal row
+        EditorGUILayout.EndHorizontal();
+
+
+        GUILayout.Space(20);
+        EditorGUILayout.LabelField("Split Settings", EditorStyles.boldLabel);
+
+        // start horizontal row
+        EditorGUILayout.BeginHorizontal();
+        // label for max size 
+        EditorGUILayout.LabelField("Max Size", GUILayout.Width(130));
+        splitSize = EditorGUILayout.Popup(splitSize, convertMaxSize);
+        // end horizontal row
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Texture Type", GUILayout.Width(130));
+        splitImporterType = (TextureImporterType)EditorGUILayout.EnumPopup(splitImporterType);
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Use Import Settings", GUILayout.Width(130));
+        useImportSettings = EditorGUILayout.Toggle(useImportSettings);
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Create folder", GUILayout.Width(130));
+        createSplitFolder = EditorGUILayout.Toggle(createSplitFolder);
+        EditorGUILayout.EndHorizontal();
+
+        EditorGUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("", GUILayout.Width(130));
+        if (GUILayout.Button("Apply"))
+            SplitSprite(sprites[0]);
         EditorGUILayout.EndHorizontal();
 
         // end vertical column
@@ -494,11 +532,6 @@ public class SpriteEditorWindow : EditorWindow
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.EndHorizontal();
-
-        if (GUILayout.Button("Split Sprite"))
-        {
-            SplitSprite(sprites[0]);
-        }
     }
 
     private void DisplayBatch()
@@ -547,7 +580,7 @@ public class SpriteEditorWindow : EditorWindow
 
         placeInScene = EditorGUILayout.Toggle("Layout In Scene", placeInScene);
 
-        size = EditorGUILayout.Popup("Max Size", size, maxSize);
+        size = EditorGUILayout.Popup("Max Size", size, convertMaxSize);
 
         compressionQuality = (TextureImporterCompression)EditorGUILayout.EnumPopup("Compression", compressionQuality);
         useCrunch = EditorGUILayout.Toggle("Crunch Compression", useCrunch);
@@ -720,7 +753,22 @@ public class SpriteEditorWindow : EditorWindow
         if (updateMode)
             importer.spriteImportMode = mode;
 
-        importer.maxTextureSize = int.Parse(maxSize[size]);
+        importer.maxTextureSize = int.Parse(convertMaxSize[size]);
+        importer.textureCompression = compressionQuality;
+        importer.crunchedCompression = useCrunch;
+        importer.compressionQuality = quality;
+        importer.SaveAndReimport();
+    }
+
+    private void UpdateSettings(string path)
+    {
+        string texPath = path;
+        TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+
+        if (updateMode)
+            importer.spriteImportMode = mode;
+
+        importer.maxTextureSize = int.Parse(convertMaxSize[size]);
         importer.textureCompression = compressionQuality;
         importer.crunchedCompression = useCrunch;
         importer.compressionQuality = quality;
@@ -729,20 +777,30 @@ public class SpriteEditorWindow : EditorWindow
 
     private void SplitSprite(Texture2D tex)
     {
-        //string texPath = AssetDatabase.GetAssetPath(tex);
-        //TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
-        //importer.isReadable = true;
-        //importer.maxTextureSize = 8192;
+        string savePath = EditorUtility.OpenFolderPanel("Save Split Folder", "Assets", "");
+        Debug.Log(savePath);
 
-        //importer.SaveAndReimport();
+        if (createSplitFolder)
+        {
+            savePath = savePath + "/" + sprites[0].name;
+            Directory.CreateDirectory(savePath);
+        }
+
+        string texPath = AssetDatabase.GetAssetPath(tex);
+        TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+        importer.isReadable = true;
+        importer.maxTextureSize = 8192;
+        importer.textureCompression = TextureImporterCompression.Uncompressed;
+
+        importer.SaveAndReimport();
 
         int width = tex.width;
         int height = tex.height;
 
-        Debug.Log("Width: " + width + " / Height: " + height);
+        int _size = int.Parse(convertMaxSize[splitSize]);
 
-        int amountWidth = Mathf.CeilToInt((float)width / 2048.0f);
-        int amountHeight = Mathf.CeilToInt((float)height / 2048.0f);
+        int amountWidth = Mathf.CeilToInt((float)width / (float)_size);
+        int amountHeight = Mathf.CeilToInt((float)height / (float)_size);
 
         Debug.Log(amountWidth + " / " + amountHeight);
 
@@ -754,13 +812,13 @@ public class SpriteEditorWindow : EditorWindow
             int y = 0;
             for (int j = 0; j < amountHeight; j++)
             {
-                float rectWidth = width - x >= 2048 ? 2048 : width - x;
-                float rectHeight = height - y >= 2048 ? 2048 : height - y;
+                float rectWidth = width - x >= _size ? _size : width - x;
+                float rectHeight = height - y >= _size ? _size : height - y;
                 Rect rect = new Rect(x, y, rectWidth, rectHeight);
                 rects.Add(rect);
-                y += 2048;
+                y += _size;
             }
-            x += 2048;
+            x += _size;
         }
 
         Debug.Log(Application.dataPath);
@@ -792,24 +850,29 @@ public class SpriteEditorWindow : EditorWindow
 
             newTex.SetPixels(0, 0, (int)rects[i].width, (int)rects[i].height, tex.GetPixels((int)rects[i].x, (int)rects[i].y, (int)rects[i].width, (int)rects[i].height));
             newTex.Apply();
-            string path = Application.dataPath + "/" + "texture" + i + ".png";
+            string path = savePath + "/" + "texture" + i + ".png";
             File.WriteAllBytes(path, newTex.EncodeToPNG());
             string localPath = path.Replace(Application.dataPath, "Assets");
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(localPath);
-            importer.isReadable = true;
-            importer.spriteImportMode = SpriteImportMode.Single;
+            TextureImporter _importer = (TextureImporter)AssetImporter.GetAtPath(localPath);
+            _importer.isReadable = true;
+            //_importer.spriteImportMode = SpriteImportMode.Single;
             TextureImporterSettings settings = new TextureImporterSettings();
-            importer.ReadTextureSettings(settings);
-            settings.textureType = TextureImporterType.Sprite;
+            _importer.ReadTextureSettings(settings);
+            settings.textureType = TextureImporterType.Default;
             settings.spriteMode = 1;
             settings.spriteAlignment = 9;
             settings.spritePivot = pivot;
-            importer.SetTextureSettings(settings);          
-            importer.SaveAndReimport();
+            _importer.SetTextureSettings(settings);
+            _importer.textureType = splitImporterType;
+            _importer.spriteImportMode = SpriteImportMode.Single;
+            _importer.SaveAndReimport();
+
+            if(useImportSettings)
+                UpdateSettings(localPath);
         }
 
         AssetDatabase.SaveAssets();
