@@ -31,6 +31,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Linq;
 using UnityEditorInternal;
+using System.IO;
 
 public class SpriteEditorWindow : EditorWindow
 {
@@ -493,6 +494,11 @@ public class SpriteEditorWindow : EditorWindow
         EditorGUILayout.EndVertical();
 
         EditorGUILayout.EndHorizontal();
+
+        if (GUILayout.Button("Split Sprite"))
+        {
+            SplitSprite(sprites[0]);
+        }
     }
 
     private void DisplayBatch()
@@ -719,5 +725,95 @@ public class SpriteEditorWindow : EditorWindow
         importer.crunchedCompression = useCrunch;
         importer.compressionQuality = quality;
         importer.SaveAndReimport();
+    }
+
+    private void SplitSprite(Texture2D tex)
+    {
+        //string texPath = AssetDatabase.GetAssetPath(tex);
+        //TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(texPath);
+        //importer.isReadable = true;
+        //importer.maxTextureSize = 8192;
+
+        //importer.SaveAndReimport();
+
+        int width = tex.width;
+        int height = tex.height;
+
+        Debug.Log("Width: " + width + " / Height: " + height);
+
+        int amountWidth = Mathf.CeilToInt((float)width / 2048.0f);
+        int amountHeight = Mathf.CeilToInt((float)height / 2048.0f);
+
+        Debug.Log(amountWidth + " / " + amountHeight);
+
+        int x = 0;
+        List<Rect> rects = new List<Rect>();
+        List<Vector2> pivots = new List<Vector2>();
+        for (int i = 0; i < amountWidth; i++)
+        {
+            int y = 0;
+            for (int j = 0; j < amountHeight; j++)
+            {
+                float rectWidth = width - x >= 2048 ? 2048 : width - x;
+                float rectHeight = height - y >= 2048 ? 2048 : height - y;
+                Rect rect = new Rect(x, y, rectWidth, rectHeight);
+                rects.Add(rect);
+                y += 2048;
+            }
+            x += 2048;
+        }
+
+        Debug.Log(Application.dataPath);
+
+        
+        for (int i = 0; i < rects.Count; i++)
+        {
+            int w = (int)rects[i].width;
+            int h = (int)rects[i].height;
+
+            while (w % 4 != 0)
+                w++;
+            while (h % 4 != 0)
+                h++;
+
+            Vector2 pivot = new Vector2();
+            pivot.x -= rects[i].x / w;
+            pivot.y -= rects[i].y / h;
+
+            Texture2D newTex = new Texture2D(w, h);
+
+            for (int j = 0; j < w; j++)
+            {
+                for (int k = 0; k < h; k++)
+                {
+                    newTex.SetPixel(j, k, Color.clear);
+                }
+            }
+
+            newTex.SetPixels(0, 0, (int)rects[i].width, (int)rects[i].height, tex.GetPixels((int)rects[i].x, (int)rects[i].y, (int)rects[i].width, (int)rects[i].height));
+            newTex.Apply();
+            string path = Application.dataPath + "/" + "texture" + i + ".png";
+            File.WriteAllBytes(path, newTex.EncodeToPNG());
+            string localPath = path.Replace(Application.dataPath, "Assets");
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            TextureImporter importer = (TextureImporter)AssetImporter.GetAtPath(localPath);
+            importer.isReadable = true;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            TextureImporterSettings settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.textureType = TextureImporterType.Sprite;
+            settings.spriteMode = 1;
+            settings.spriteAlignment = 9;
+            settings.spritePivot = pivot;
+            importer.SetTextureSettings(settings);          
+            importer.SaveAndReimport();
+        }
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+
     }
 }
